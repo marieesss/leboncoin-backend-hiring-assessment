@@ -3,6 +3,7 @@ package http
 import (
 	"net/http"
 
+	"github.mpi-internal.com/leboncoin/backend-hiring-assessment/ads/internal/cmd/ads-api/specs"
 	"github.mpi-internal.com/leboncoin/backend-hiring-assessment/ads/internal/cmd/ads-api/usecase"
 	"github.mpi-internal.com/leboncoin/backend-hiring-assessment/common/middleware"
 )
@@ -14,8 +15,8 @@ type Usecases struct {
 	CreateAd usecase.CreateAdFunc
 }
 
-// NewRouter wires the routes of the API.
-func NewRouter(usecases Usecases) http.Handler {
+// NewRouter wires the routes of the API. Swagger UI is only exposed when enableSwagger is true.
+func NewRouter(usecases Usecases, enableSwagger bool) http.Handler {
 	mux := http.NewServeMux()
 
 	mux.Handle("GET /ads", handlerListAds(usecases.ListAds))
@@ -26,6 +27,10 @@ func NewRouter(usecases Usecases) http.Handler {
 	mux.HandleFunc("GET /health", func(rw http.ResponseWriter, _ *http.Request) {
 		rw.WriteHeader(http.StatusOK)
 	})
+
+	if enableSwagger {
+		RegisterSwagger(mux, specs.OpenAPI)
+	}
 
 	return mux
 }

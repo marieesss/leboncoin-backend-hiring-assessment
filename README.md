@@ -58,6 +58,12 @@ curl -s -X POST http://localhost:8080/ads \
   -d '{"title":"Mountain bike","price_cents":12000,"photo_url":"https://example.com/photos/bike.jpg"}'
 ```
 
+## API documentation (development only)
+
+When `APP_ENV=development` (set by the Docker Compose file), Swagger UI is available at http://localhost:8080/swagger.
+It renders the spec found in `ads/internal/cmd/ads-api/specs/openapi.yaml`, also served raw at `/swagger/openapi.yaml`.
+In any other environment (default: `production`), these routes are not registered and return 404.
+
 ## Authentication
 
 To pass authentication information to a call, simply add the `Authorization` header with the user ID in plain text.
