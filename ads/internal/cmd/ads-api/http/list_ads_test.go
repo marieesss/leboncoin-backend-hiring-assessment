@@ -36,7 +36,7 @@ func TestHandlerListAds(t *testing.T) {
 
 		resp, err := http.Get(srv.URL + "/ads")
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 		assert.Equal(t, "application/json", resp.Header.Get("Content-Type"))
@@ -58,7 +58,7 @@ func TestHandlerListAds(t *testing.T) {
 
 		resp, err := http.Get(srv.URL + "/ads")
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -77,7 +77,7 @@ func TestHandlerListAds(t *testing.T) {
 
 		resp, err := http.Get(srv.URL + "/ads?title=bike&user_id=user-3&min_price_cents=1000&max_price_cents=50000")
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 		assert.Equal(t, "bike", received.Title)
@@ -95,7 +95,7 @@ func TestHandlerListAds(t *testing.T) {
 
 		resp, err := http.Get(srv.URL + "/ads?min_price_cents=not-a-number")
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 	})
@@ -109,7 +109,7 @@ func TestHandlerListAds(t *testing.T) {
 
 		resp, err := http.Get(srv.URL + "/ads?max_price_cents=abc")
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 	})
@@ -122,7 +122,7 @@ func TestHandlerListAds(t *testing.T) {
 
 		resp, err := http.Get(srv.URL + "/ads")
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
 	})

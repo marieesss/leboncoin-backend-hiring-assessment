@@ -39,7 +39,7 @@ func TestHandlerImportAds(t *testing.T) {
 			{Title: "car", PriceCents: 200000, PhotoURL: "https://example.com/car.jpg"},
 		}}
 		resp := postJSON(t, srv.URL+"/ads/import", body, "user-1")
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusCreated, resp.StatusCode)
 
@@ -61,7 +61,7 @@ func TestHandlerImportAds(t *testing.T) {
 			{Title: "scooter", PriceCents: 8000, PhotoURL: "https://example.com/scooter.jpg"},
 		}}
 		resp := postJSON(t, srv.URL+"/ads/import", body, "user-42")
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 
 		require.Equal(t, http.StatusCreated, resp.StatusCode)
 		require.Len(t, received, 2)
@@ -77,7 +77,7 @@ func TestHandlerImportAds(t *testing.T) {
 		defer srv.Close()
 
 		resp := postJSON(t, srv.URL+"/ads/import", importAdsBody{Ads: []createAdBody{}}, "user-1")
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusCreated, resp.StatusCode)
 
@@ -94,7 +94,7 @@ func TestHandlerImportAds(t *testing.T) {
 		defer srv.Close()
 
 		resp := postJSON(t, srv.URL+"/ads/import", importAdsBody{}, "")
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
 	})
@@ -112,7 +112,7 @@ func TestHandlerImportAds(t *testing.T) {
 
 		resp, err := http.DefaultClient.Do(req)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 	})
@@ -134,7 +134,7 @@ func TestHandlerImportAds(t *testing.T) {
 			{Title: "car", PriceCents: 200000, PhotoURL: "https://example.com/car.jpg"},
 		}}
 		resp := postJSON(t, srv.URL+"/ads/import", body, "user-1")
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
 		assert.Equal(t, 2, call)
