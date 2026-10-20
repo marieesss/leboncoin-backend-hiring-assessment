@@ -14,8 +14,8 @@ type Usecases struct {
 	CreateAd usecase.CreateAdFunc
 }
 
-// NewRouter wires the routes of the API.
-func NewRouter(usecases Usecases) http.Handler {
+// NewRouter wires the routes of the API. Swagger UI is only exposed on dev mode, when swaggerSpec is not nil.
+func NewRouter(usecases Usecases, swaggerSpec []byte) http.Handler {
 	mux := http.NewServeMux()
 
 	mux.Handle("GET /ads", handlerListAds(usecases.ListAds))
@@ -26,6 +26,10 @@ func NewRouter(usecases Usecases) http.Handler {
 	mux.HandleFunc("GET /health", func(rw http.ResponseWriter, _ *http.Request) {
 		rw.WriteHeader(http.StatusOK)
 	})
+
+	if swaggerSpec != nil {
+		RegisterSwagger(mux, swaggerSpec)
+	}
 
 	return mux
 }

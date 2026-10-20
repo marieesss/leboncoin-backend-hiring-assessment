@@ -58,6 +58,11 @@ curl -s -X POST http://localhost:8080/ads \
   -d '{"title":"Mountain bike","price_cents":12000,"photo_url":"https://example.com/photos/bike.jpg"}'
 ```
 
+## API documentation (dev mode only)
+
+Swagger UI is available at http://localhost:8080/swagger . Requires APP_ENV=development in docker-compose.yml.
+Using spec found in `ads/internal/cmd/ads-api/specs/openapi.yaml`.
+
 ## Authentication
 
 To pass authentication information to a call, simply add the `Authorization` header with the user ID in plain text.

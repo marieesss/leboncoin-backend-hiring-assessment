@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	_ "embed"
 	"log/slog"
 	"os"
 
@@ -10,6 +11,9 @@ import (
 	"github.mpi-internal.com/leboncoin/backend-hiring-assessment/ads/internal/cmd/ads-api/usecase"
 	"github.mpi-internal.com/leboncoin/backend-hiring-assessment/common/httpserver"
 )
+
+//go:embed specs/openapi.yaml
+var openAPISpec []byte
 
 func main() {
 	if err := run(); err != nil {
@@ -32,11 +36,17 @@ func run() error {
 		}
 	}()
 
+	// Swagger UI is only exposed in development.
+	var swaggerSpec []byte
+	if cfg.IsDevelopment() {
+		swaggerSpec = openAPISpec
+	}
+
 	router := http.NewRouter(http.Usecases{
 		CreateAd: usecase.NewCreateAdFunc(adDAO),
 		GetAd:    usecase.NewGetAdByIDFunc(adDAO),
 		ListAds:  usecase.NewListAdsFunc(adDAO),
-	})
+	}, swaggerSpec)
 
 	return httpserver.Run(ctx, cfg.HTTPAddr, router)
 }
