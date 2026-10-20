@@ -7,6 +7,8 @@ import (
 
 // Config holds everything the API needs to start.
 type Config struct {
+	// Env is the environment the API runs in
+	Env string
 	// HTTPAddr is the address the API listens on, for example ":8080".
 	HTTPAddr string
 	// DatabaseURL is the PostgreSQL connection string.
@@ -20,11 +22,16 @@ type Config struct {
 // Load reads the configuration from the environment.
 func Load() Config {
 	return Config{
+		Env:             text("APP_ENV", "production"),
 		HTTPAddr:        text("HTTP_ADDR", ":8080"),
 		DatabaseURL:     text("DATABASE_URL", "postgres://ads:ads@localhost:5432/ads?sslmode=disable"),
 		IdentityURL:     text("IDENTITY_URL", "http://localhost:8081"),
 		IdentityTimeout: duration("IDENTITY_TIMEOUT", 2*time.Second),
 	}
+}
+
+func (c Config) IsDevelopment() bool {
+	return c.Env == "development"
 }
 
 func text(name, fallback string) string {
