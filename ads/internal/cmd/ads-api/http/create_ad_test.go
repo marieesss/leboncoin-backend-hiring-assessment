@@ -53,7 +53,7 @@ func TestHandlerCreateAd(t *testing.T) {
 		defer srv.Close()
 
 		resp := postJSON(t, srv.URL+"/ads", validBody, "user-1")
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusCreated, resp.StatusCode)
 		assert.Equal(t, "application/json", resp.Header.Get("Content-Type"))
@@ -72,7 +72,7 @@ func TestHandlerCreateAd(t *testing.T) {
 		defer srv.Close()
 
 		resp := postJSON(t, srv.URL+"/ads", validBody, "user-42")
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusCreated, resp.StatusCode)
 		assert.Equal(t, domain.UserID("user-42"), received.OwnerID)
@@ -89,7 +89,7 @@ func TestHandlerCreateAd(t *testing.T) {
 		defer srv.Close()
 
 		resp := postJSON(t, srv.URL+"/ads", validBody, "")
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
 	})
@@ -108,7 +108,7 @@ func TestHandlerCreateAd(t *testing.T) {
 
 		resp, err := http.DefaultClient.Do(req)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 	})
@@ -120,7 +120,7 @@ func TestHandlerCreateAd(t *testing.T) {
 		defer srv.Close()
 
 		resp := postJSON(t, srv.URL+"/ads", validBody, "user-1")
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
 	})

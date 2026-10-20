@@ -42,7 +42,7 @@ func TestHandlerGetAd(t *testing.T) {
 
 		resp, err := http.Get(srv.URL + "/ads/42")
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 		assert.Equal(t, "application/json", resp.Header.Get("Content-Type"))
@@ -66,7 +66,7 @@ func TestHandlerGetAd(t *testing.T) {
 
 		resp, err := http.Get(srv.URL + "/ads/not-a-number")
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 	})
@@ -79,7 +79,7 @@ func TestHandlerGetAd(t *testing.T) {
 
 		resp, err := http.Get(srv.URL + "/ads/99")
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusNotFound, resp.StatusCode)
 	})
@@ -92,7 +92,7 @@ func TestHandlerGetAd(t *testing.T) {
 
 		resp, err := http.Get(srv.URL + "/ads/1")
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
 	})
@@ -107,7 +107,7 @@ func TestHandlerGetAd(t *testing.T) {
 
 		resp, err := http.Get(srv.URL + "/ads/7")
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 		assert.Equal(t, domain.AdID(7), receivedID)
