@@ -75,3 +75,15 @@ To launch all the tests:
 ```shell
 go test ./...
 ```
+
+## Lint
+
+To fix lint in local environnment like CI pipeline, view docs [here](https://golangci-lint.run/docs/welcome/install/local/)
+
+```shell
+curl -sSfL https://golangci-lint.run/install.sh | sh -s -- -b $(go env GOPATH)/bin v2.15.0
+
+golangci-lint --version
+
+golangci-lint run --max-same-issues=0 --max-issues-per-linter=0 ./...
+```
