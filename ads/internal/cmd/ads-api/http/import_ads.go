@@ -2,6 +2,7 @@ package http
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 
 	"github.mpi-internal.com/leboncoin/backend-hiring-assessment/ads/internal/cmd/ads-api/domain"
@@ -37,6 +38,7 @@ func handlerImportAds(createAd usecase.CreateAdFunc) http.HandlerFunc {
 				OwnerID:    ownerID,
 			})
 			if err != nil {
+				slog.Error("unable to import ad", "user_id", ownerID, "error", err)
 				httpresponse.WriteError(rw, http.StatusInternalServerError, "internal error")
 				return
 			}

@@ -2,6 +2,7 @@ package http
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"time"
@@ -70,6 +71,7 @@ func handlerListAds(listAds usecase.ListAdsFunc) http.HandlerFunc {
 
 		ads, err := listAds(r.Context(), req)
 		if err != nil {
+			slog.Error("unable to list ads", "user_id", req.OwnerID, "error", err)
 			httpresponse.WriteError(rw, http.StatusInternalServerError, "internal error")
 			return
 		}

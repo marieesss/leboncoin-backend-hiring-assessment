@@ -16,6 +16,8 @@ import (
 var openAPISpec []byte
 
 func main() {
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, nil)))
+
 	if err := run(); err != nil {
 		slog.Error("api stopped", "error", err)
 		os.Exit(1)

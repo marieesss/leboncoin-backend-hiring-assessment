@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -47,6 +48,7 @@ func handlerGetAd(getAd usecase.GetAdByIDFunc) http.HandlerFunc {
 			if errors.Is(err, adsdao.ErrNotFound) {
 				httpresponse.WriteError(rw, http.StatusNotFound, fmt.Sprintf("ad %d not found", adID))
 			} else {
+				slog.Error("unable to get ad", "ad_id", adID, "error", err)
 				httpresponse.WriteError(rw, http.StatusInternalServerError, "internal error")
 			}
 
