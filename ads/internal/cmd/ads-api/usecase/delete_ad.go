@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	adsdao "github.mpi-internal.com/leboncoin/backend-hiring-assessment/ads/internal/cmd/ads-api/dao"
 	"github.mpi-internal.com/leboncoin/backend-hiring-assessment/ads/internal/cmd/ads-api/domain"
@@ -25,6 +26,19 @@ func NewDeleteAdFunc(adDAO adsdao.DAO) DeleteAdFunc {
 	return deleteAd{adDAO: adDAO}.deleteAd
 }
 
-func (uc deleteAd) deleteAd(_ context.Context, _ domain.AdID, _ domain.UserID) error {
-	return errors.New("delete ad is not implemented yet")
+func (uc deleteAd) deleteAd(ctx context.Context, id domain.AdID, userID domain.UserID) error {
+	ad, err := uc.adDAO.GetAdByID(ctx, id)
+	if err != nil {
+		return fmt.Errorf("unable to get ad %s: %w", id, err)
+	}
+
+	if ad.UserID != userID {
+		return fmt.Errorf("unable to delete ad %s: %w", id, ErrForbidden)
+	}
+
+	if err := uc.adDAO.DeleteAd(ctx, id); err != nil {
+		return fmt.Errorf("unable to delete ad %s: %w", id, err)
+	}
+
+	return nil
 }
