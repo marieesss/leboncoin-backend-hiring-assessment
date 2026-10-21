@@ -3,12 +3,14 @@ package http
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"time"
 
 	adsdao "github.mpi-internal.com/leboncoin/backend-hiring-assessment/ads/internal/cmd/ads-api/dao"
 	"github.mpi-internal.com/leboncoin/backend-hiring-assessment/ads/internal/cmd/ads-api/domain"
 	"github.mpi-internal.com/leboncoin/backend-hiring-assessment/ads/internal/cmd/ads-api/usecase"
+	"github.mpi-internal.com/leboncoin/backend-hiring-assessment/common/httpresponse"
 )
 
 type getAdResponse struct {
@@ -35,7 +37,7 @@ func handlerGetAd(getAd usecase.GetAdByIDFunc) http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
 		adID, err := adIDFromURL(r)
 		if err != nil {
-			rw.WriteHeader(http.StatusBadRequest)
+			httpresponse.WriteError(rw, http.StatusBadRequest, err.Error())
 
 			return
 		}
@@ -43,9 +45,9 @@ func handlerGetAd(getAd usecase.GetAdByIDFunc) http.HandlerFunc {
 		ad, err := getAd(r.Context(), adID)
 		if err != nil {
 			if errors.Is(err, adsdao.ErrNotFound) {
-				rw.WriteHeader(http.StatusNotFound)
+				httpresponse.WriteError(rw, http.StatusNotFound, fmt.Sprintf("ad %d not found", adID))
 			} else {
-				rw.WriteHeader(http.StatusInternalServerError)
+				httpresponse.WriteError(rw, http.StatusInternalServerError, "internal error")
 			}
 
 			return

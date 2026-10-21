@@ -8,6 +8,7 @@ import (
 
 	"github.mpi-internal.com/leboncoin/backend-hiring-assessment/ads/internal/cmd/ads-api/domain"
 	"github.mpi-internal.com/leboncoin/backend-hiring-assessment/ads/internal/cmd/ads-api/usecase"
+	"github.mpi-internal.com/leboncoin/backend-hiring-assessment/common/httpresponse"
 )
 
 type listAdsItem struct {
@@ -50,7 +51,7 @@ func handlerListAds(listAds usecase.ListAdsFunc) http.HandlerFunc {
 		if raw := q.Get("min_price_cents"); raw != "" {
 			v, err := strconv.ParseInt(raw, 10, 64)
 			if err != nil {
-				rw.WriteHeader(http.StatusBadRequest)
+				httpresponse.WriteError(rw, http.StatusBadRequest, err.Error())
 				return
 			}
 
@@ -60,7 +61,7 @@ func handlerListAds(listAds usecase.ListAdsFunc) http.HandlerFunc {
 		if raw := q.Get("max_price_cents"); raw != "" {
 			v, err := strconv.ParseInt(raw, 10, 64)
 			if err != nil {
-				rw.WriteHeader(http.StatusBadRequest)
+				httpresponse.WriteError(rw, http.StatusBadRequest, err.Error())
 				return
 			}
 
@@ -69,7 +70,7 @@ func handlerListAds(listAds usecase.ListAdsFunc) http.HandlerFunc {
 
 		ads, err := listAds(r.Context(), req)
 		if err != nil {
-			rw.WriteHeader(http.StatusInternalServerError)
+			httpresponse.WriteError(rw, http.StatusInternalServerError, "internal error")
 			return
 		}
 
