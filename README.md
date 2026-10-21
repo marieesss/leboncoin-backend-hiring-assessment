@@ -92,3 +92,7 @@ golangci-lint --version
 
 golangci-lint run --max-same-issues=0 --max-issues-per-linter=0 ./...
 ```
+## Contribution Rules
+
+
+Contribution rules are described in [CONTRIBUTING.md](CONTRIBUTING.md).

@@ -2,9 +2,11 @@ package http
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 
 	"github.mpi-internal.com/leboncoin/backend-hiring-assessment/ads/internal/cmd/ads-api/usecase"
+	"github.mpi-internal.com/leboncoin/backend-hiring-assessment/common/httpresponse"
 	"github.mpi-internal.com/leboncoin/backend-hiring-assessment/common/middleware"
 )
 
@@ -23,18 +25,21 @@ func handlerCreateAd(createAd usecase.CreateAdFunc) http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
 		var body createAdBody
 		if err := decodeBody(r, &body); err != nil {
-			rw.WriteHeader(http.StatusBadRequest)
+			httpresponse.WriteError(rw, http.StatusBadRequest, err.Error())
 			return
 		}
+
+		ownerID := middleware.UserIDFromRequest(r)
 
 		adID, err := createAd(r.Context(), usecase.CreateAdRequest{
 			Title:      body.Title,
 			PriceCents: body.PriceCents,
 			PhotoURL:   body.PhotoURL,
-			OwnerID:    middleware.UserIDFromRequest(r),
+			OwnerID:    ownerID,
 		})
 		if err != nil {
-			rw.WriteHeader(http.StatusInternalServerError)
+			slog.Error("unable to create ad", "user_id", ownerID, "error", err)
+			httpresponse.WriteError(rw, http.StatusInternalServerError, "internal error")
 			return
 		}
 
