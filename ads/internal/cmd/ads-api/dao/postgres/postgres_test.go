@@ -179,6 +179,63 @@ func TestCreateAd(t *testing.T) {
 	})
 }
 
+func TestDeleteAd(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("deletes the ad", func(t *testing.T) {
+		dao, mock := newMockDAO(t)
+		mock.ExpectExec("DELETE").
+			WithArgs(int64(42)).
+			WillReturnResult(sqlmock.NewResult(0, 1))
+
+		err := dao.DeleteAd(ctx, 42)
+
+		require.NoError(t, err)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("returns ErrNotFound when no row is deleted", func(t *testing.T) {
+		dao, mock := newMockDAO(t)
+		mock.ExpectExec("DELETE").
+			WithArgs(int64(99)).
+			WillReturnResult(sqlmock.NewResult(0, 0))
+
+		err := dao.DeleteAd(ctx, 99)
+
+		require.Error(t, err)
+		assert.ErrorIs(t, err, adsdao.ErrNotFound)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("returns error on query failure", func(t *testing.T) {
+		dao, mock := newMockDAO(t)
+		boom := errors.New("connection reset")
+		mock.ExpectExec("DELETE").
+			WithArgs(int64(1)).
+			WillReturnError(boom)
+
+		err := dao.DeleteAd(ctx, 1)
+
+		require.Error(t, err)
+		assert.ErrorIs(t, err, boom)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("returns error when affected rows cannot be read", func(t *testing.T) {
+		dao, mock := newMockDAO(t)
+		boom := errors.New("driver error")
+		mock.ExpectExec("DELETE").
+			WithArgs(int64(1)).
+			WillReturnResult(sqlmock.NewErrorResult(boom))
+
+		err := dao.DeleteAd(ctx, 1)
+
+		require.Error(t, err)
+		assert.ErrorIs(t, err, boom)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+}
+
 func TestTransaction(t *testing.T) {
 	ctx := context.Background()
 	req := adsdao.CreateAdRequest{
