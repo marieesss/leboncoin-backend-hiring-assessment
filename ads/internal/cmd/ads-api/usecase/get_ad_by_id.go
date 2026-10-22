@@ -3,9 +3,12 @@ package usecase
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	adsdao "github.mpi-internal.com/leboncoin/backend-hiring-assessment/ads/internal/cmd/ads-api/dao"
 	"github.mpi-internal.com/leboncoin/backend-hiring-assessment/ads/internal/cmd/ads-api/domain"
+	"github.mpi-internal.com/leboncoin/backend-hiring-assessment/common/model"
+	usersclient "github.mpi-internal.com/leboncoin/backend-hiring-assessment/users/pkg"
 )
 
 type (
@@ -18,14 +21,20 @@ type (
 		Username string
 	}
 
+	// UserGetter is the part of the user service GetAdByID needs.
+	UserGetter interface {
+		GetUserByID(ctx context.Context, userID model.UserID) (usersclient.User, error)
+	}
+
 	getAdByID struct {
-		adDAO adsdao.DAO
+		adDAO      adsdao.DAO
+		userGetter UserGetter
 	}
 )
 
-// NewGetAdByIDFunc returns a GetAdByIDFunc backed by the given DAO.
-func NewGetAdByIDFunc(adDAO adsdao.DAO) GetAdByIDFunc {
-	return getAdByID{adDAO: adDAO}.getAdByID
+// NewGetAdByIDFunc returns a GetAdByIDFunc backed by the given DAO and user
+func NewGetAdByIDFunc(adDAO adsdao.DAO, userGetter UserGetter) GetAdByIDFunc {
+	return getAdByID{adDAO: adDAO, userGetter: userGetter}.getAdByID
 }
 
 func (uc getAdByID) getAdByID(ctx context.Context, id domain.AdID) (AdDetails, error) {
@@ -34,5 +43,13 @@ func (uc getAdByID) getAdByID(ctx context.Context, id domain.AdID) (AdDetails, e
 		return AdDetails{}, fmt.Errorf("unable to get ad %s: %w", id, err)
 	}
 
-	return AdDetails{Ad: found}, nil
+	// The username is secondary: the ad is still returned when the user service fails
+	user, err := uc.userGetter.GetUserByID(ctx, found.UserID)
+	if err != nil {
+		slog.Warn("unable to get ad owner username", "ad_id", id, "user_id", found.UserID, "error", err)
+
+		return AdDetails{Ad: found}, nil
+	}
+
+	return AdDetails{Ad: found, Username: user.Nickname}, nil
 }

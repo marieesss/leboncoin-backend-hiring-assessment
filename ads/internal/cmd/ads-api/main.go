@@ -9,6 +9,7 @@ import (
 	"github.mpi-internal.com/leboncoin/backend-hiring-assessment/ads/internal/cmd/ads-api/dao/postgres"
 	"github.mpi-internal.com/leboncoin/backend-hiring-assessment/ads/internal/cmd/ads-api/http"
 	"github.mpi-internal.com/leboncoin/backend-hiring-assessment/ads/internal/cmd/ads-api/usecase"
+	"github.mpi-internal.com/leboncoin/backend-hiring-assessment/ads/internal/cmd/ads-api/userclient"
 	"github.mpi-internal.com/leboncoin/backend-hiring-assessment/common/httpserver"
 )
 
@@ -38,6 +39,8 @@ func run() error {
 		}
 	}()
 
+	userClient := userclient.New(cfg.IdentityURL, cfg.IdentityTimeout)
+
 	// Swagger UI is only exposed in development.
 	var swaggerSpec []byte
 	if cfg.IsDevelopment() {
@@ -47,7 +50,7 @@ func run() error {
 	router := http.NewRouter(http.Usecases{
 		CreateAd: usecase.NewCreateAdFunc(adDAO),
 		DeleteAd: usecase.NewDeleteAdFunc(adDAO),
-		GetAd:    usecase.NewGetAdByIDFunc(adDAO),
+		GetAd:    usecase.NewGetAdByIDFunc(adDAO, userClient),
 		ListAds:  usecase.NewListAdsFunc(adDAO),
 	}, swaggerSpec)
 
