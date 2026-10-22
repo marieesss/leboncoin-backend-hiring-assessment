@@ -46,6 +46,7 @@ func TestHandlerListAds(t *testing.T) {
 		require.Len(t, got.Ads, 2)
 		assert.Equal(t, int64(1), got.Ads[0].ID)
 		assert.Equal(t, "bike", got.Ads[0].Title)
+		assert.InDelta(t, 50.0, got.Ads[0].Price, 0)
 		assert.Equal(t, int64(5000), got.Ads[0].PriceCents)
 		assert.Equal(t, int64(2), got.Ads[1].ID)
 	})
