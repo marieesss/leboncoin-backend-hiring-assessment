@@ -13,7 +13,8 @@ import (
 	"github.mpi-internal.com/leboncoin/backend-hiring-assessment/ads/internal/cmd/ads-api/domain"
 )
 
-const adColumns = `id, title, price_cents, photo_url, user_id::text, created_at`
+// adColumns reads the price in cents: the database stores euros, the domain works in cents.
+const adColumns = `id, title, (price * 100)::bigint AS price_cents, photo_url, user_id::text, created_at`
 
 // DAO is a PostgreSQL-backed ad store.
 type DAO struct {
@@ -113,8 +114,8 @@ func (d *DAO) SearchAds(ctx context.Context, req adsdao.SearchAdsRequest) ([]dom
 		SELECT ` + adColumns + `
 		FROM ads
 		WHERE ($1 = '' OR user_id::text = $1)
-		  AND ($2 = 0 OR price_cents >= $2)
-		  AND ($3 = 0 OR price_cents <= $3)
+		  AND ($2 = 0 OR price * 100 >= $2)
+		  AND ($3 = 0 OR price * 100 <= $3)
 		  AND ($4 = '' OR title ILIKE '%' || $4 || '%')`
 
 	rows, err := d.runner().QueryContext(ctx, query,
@@ -160,8 +161,8 @@ func (d *DAO) GetAdByID(ctx context.Context, id domain.AdID) (domain.Ad, error) 
 // CreateAd inserts an ad and returns its generated identifier.
 func (d *DAO) CreateAd(ctx context.Context, req adsdao.CreateAdRequest) (domain.AdID, error) {
 	const query = `
-		INSERT INTO ads (title, price_cents, photo_url, user_id)
-		VALUES ($1, $2, $3, $4::uuid)
+		INSERT INTO ads (title, price, photo_url, user_id)
+		VALUES ($1, $2::bigint / 100.0, $3, $4::uuid)
 		RETURNING id`
 
 	var id domain.AdID
