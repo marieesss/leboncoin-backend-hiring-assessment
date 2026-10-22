@@ -24,7 +24,7 @@ func TestGetAdByID(t *testing.T) {
 		got, err := usecase.NewGetAdByIDFunc(m)(ctx, 42)
 
 		require.NoError(t, err)
-		assert.Equal(t, want, got)
+		assert.Equal(t, usecase.AdDetails{Ad: want}, got)
 	})
 
 	t.Run("error no ad found", func(t *testing.T) {

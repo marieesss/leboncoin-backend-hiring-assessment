@@ -9,7 +9,6 @@ import (
 	"time"
 
 	adsdao "github.mpi-internal.com/leboncoin/backend-hiring-assessment/ads/internal/cmd/ads-api/dao"
-	"github.mpi-internal.com/leboncoin/backend-hiring-assessment/ads/internal/cmd/ads-api/domain"
 	"github.mpi-internal.com/leboncoin/backend-hiring-assessment/ads/internal/cmd/ads-api/usecase"
 	"github.mpi-internal.com/leboncoin/backend-hiring-assessment/common/httpresponse"
 )
@@ -20,16 +19,20 @@ type getAdResponse struct {
 	PriceCents int64     `json:"price_cents"`
 	PhotoURL   string    `json:"photo_url"`
 	UserID     string    `json:"user_id"`
+	Username   string    `json:"username"`
 	CreatedAt  time.Time `json:"created_at"`
 }
 
-func adToGetAdResponse(a domain.Ad) getAdResponse {
+func adToGetAdResponse(details usecase.AdDetails) getAdResponse {
+	a := details.Ad
+
 	return getAdResponse{
 		ID:         int64(a.ID),
 		Title:      a.Title,
 		PriceCents: a.Price,
 		PhotoURL:   a.PhotoURL,
 		UserID:     a.UserID.String(),
+		Username:   details.Username,
 		CreatedAt:  a.CreatedAt.UTC(),
 	}
 }
@@ -43,7 +46,7 @@ func handlerGetAd(getAd usecase.GetAdByIDFunc) http.HandlerFunc {
 			return
 		}
 
-		ad, err := getAd(r.Context(), adID)
+		details, err := getAd(r.Context(), adID)
 		if err != nil {
 			if errors.Is(err, adsdao.ErrNotFound) {
 				httpresponse.WriteError(rw, http.StatusNotFound, fmt.Sprintf("ad %d not found", adID))
@@ -56,6 +59,6 @@ func handlerGetAd(getAd usecase.GetAdByIDFunc) http.HandlerFunc {
 		}
 
 		rw.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(rw).Encode(adToGetAdResponse(ad))
+		_ = json.NewEncoder(rw).Encode(adToGetAdResponse(details))
 	}
 }
