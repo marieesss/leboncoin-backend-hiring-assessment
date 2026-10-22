@@ -5,6 +5,7 @@
 # Local environment overrides.
 .env
 .env.*
+!.env.example
 
 # Go workspace files, which are always local to a machine.
 go.work
