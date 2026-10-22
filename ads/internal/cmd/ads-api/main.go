@@ -39,7 +39,13 @@ func run() error {
 		}
 	}()
 
-	userClient := userclient.New(cfg.IdentityURL, cfg.IdentityTimeout)
+	// Without the user service, ads are returned without username.
+	var userClient usecase.UserClient
+	if cfg.IdentityURL == "" {
+		slog.Warn("users service url not found, ads are returned without username")
+	} else {
+		userClient = userclient.New(cfg.IdentityURL, cfg.IdentityTimeout)
+	}
 
 	// Swagger UI is only exposed in development.
 	var swaggerSpec []byte

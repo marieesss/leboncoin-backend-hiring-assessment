@@ -21,20 +21,20 @@ type (
 		Username string
 	}
 
-	// UserGetter is the part of the user service GetAdByID needs.
-	UserGetter interface {
+	// UserClient is the part of the user service GetAdByID needs.
+	UserClient interface {
 		GetUserByID(ctx context.Context, userID model.UserID) (usersclient.User, error)
 	}
 
 	getAdByID struct {
 		adDAO      adsdao.DAO
-		userGetter UserGetter
+		userClient UserClient
 	}
 )
 
 // NewGetAdByIDFunc returns a GetAdByIDFunc backed by the given DAO and user
-func NewGetAdByIDFunc(adDAO adsdao.DAO, userGetter UserGetter) GetAdByIDFunc {
-	return getAdByID{adDAO: adDAO, userGetter: userGetter}.getAdByID
+func NewGetAdByIDFunc(adDAO adsdao.DAO, userClient UserClient) GetAdByIDFunc {
+	return getAdByID{adDAO: adDAO, userClient: userClient}.getAdByID
 }
 
 func (uc getAdByID) getAdByID(ctx context.Context, id domain.AdID) (AdDetails, error) {
@@ -44,7 +44,7 @@ func (uc getAdByID) getAdByID(ctx context.Context, id domain.AdID) (AdDetails, e
 	}
 
 	// The username is secondary: the ad is still returned when the user service fails
-	user, err := uc.userGetter.GetUserByID(ctx, found.UserID)
+	user, err := uc.userClient.GetUserByID(ctx, found.UserID)
 	if err != nil {
 		slog.Warn("unable to get ad owner username", "ad_id", id, "user_id", found.UserID, "error", err)
 

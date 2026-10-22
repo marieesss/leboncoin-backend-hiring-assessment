@@ -20,11 +20,15 @@ The API needs an up-and-running postgres database, which can be launched via the
 
 ## Launching the stack
 
+Create `.env` at the root of the project, loaded automatically by Docker Compose. It must define every variable listed in `.env.example`.
+
 ```bash
 docker compose up -d
 ```
 
-This starts PostgreSQL with the schema and seed data already applied, as well as the `ads` api.
+This starts PostgreSQL with the schema and seed data already applied, the `ads` api and the `users` api.
+
+When `IDENTITY_URL` is empty, the `ads` api starts without the user service: it logs a warning and returns ads without username.
 
 ## Model
 
@@ -65,7 +69,7 @@ curl -s -X DELETE http://localhost:8080/ads/3 \
 
 ## API documentation (dev mode only)
 
-Swagger UI is available at http://localhost:8080/swagger . Requires APP_ENV=development in docker-compose.yml.
+Swagger UI is available at http://localhost:8080/swagger . Requires APP_ENV=development in .env.
 Using spec found in `ads/internal/cmd/ads-api/specs/openapi.yaml`.
 
 ## Authentication
