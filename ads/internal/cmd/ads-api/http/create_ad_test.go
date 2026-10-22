@@ -81,6 +81,60 @@ func TestHandlerCreateAd(t *testing.T) {
 		assert.Equal(t, "https://example.com/bike.jpg", received.PhotoURL)
 	})
 
+	t.Run("converts price in euros to cents", func(t *testing.T) {
+		var received usecase.CreateAdRequest
+		srv := newCreateAdServer(func(_ context.Context, req usecase.CreateAdRequest) (domain.AdID, error) {
+			received = req
+			return domain.AdID(1), nil
+		})
+		defer srv.Close()
+
+		price := 150.5
+		body := createAdBody{Title: "mountain bike", Price: &price, PhotoURL: "https://example.com/bike.jpg"}
+		resp := postJSON(t, srv.URL+"/ads", body, "user-1")
+		defer func() { _ = resp.Body.Close() }()
+
+		assert.Equal(t, http.StatusCreated, resp.StatusCode)
+		assert.Equal(t, int64(15050), received.PriceCents)
+	})
+
+	t.Run("uses price when price and price_cents are both sent", func(t *testing.T) {
+		var received usecase.CreateAdRequest
+		srv := newCreateAdServer(func(_ context.Context, req usecase.CreateAdRequest) (domain.AdID, error) {
+			received = req
+			return domain.AdID(1), nil
+		})
+		defer srv.Close()
+
+		price := 150.5
+		body := createAdBody{Title: "mountain bike", Price: &price, PriceCents: 99, PhotoURL: "https://example.com/bike.jpg"}
+		resp := postJSON(t, srv.URL+"/ads", body, "user-1")
+		defer func() { _ = resp.Body.Close() }()
+
+		assert.Equal(t, http.StatusCreated, resp.StatusCode)
+		assert.Equal(t, int64(15050), received.PriceCents)
+	})
+
+	t.Run("returns 400 when price is invalid", func(t *testing.T) {
+		for name, raw := range map[string]string{
+			"more than 2 decimals": `{"title":"bike","price":12.345,"photo_url":"https://example.com/bike.jpg"}`,
+			"negative":             `{"title":"bike","price":-1,"photo_url":"https://example.com/bike.jpg"}`,
+		} {
+			t.Run(name, func(t *testing.T) {
+				srv := newCreateAdServer(func(_ context.Context, _ usecase.CreateAdRequest) (domain.AdID, error) {
+					t.Fatal("usecase should not be called")
+					return 0, nil
+				})
+				defer srv.Close()
+
+				resp := postJSON(t, srv.URL+"/ads", json.RawMessage(raw), "user-1")
+				defer func() { _ = resp.Body.Close() }()
+
+				assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+			})
+		}
+	})
+
 	t.Run("returns 401 when Authorization header is missing", func(t *testing.T) {
 		srv := newCreateAdServer(func(_ context.Context, _ usecase.CreateAdRequest) (domain.AdID, error) {
 			t.Fatal("usecase should not be called")

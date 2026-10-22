@@ -117,6 +117,23 @@ func TestHandlerImportAds(t *testing.T) {
 		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 	})
 
+	t.Run("returns 400 when a price is invalid", func(t *testing.T) {
+		srv := newImportAdsServer(func(_ context.Context, _ usecase.CreateAdRequest) (domain.AdID, error) {
+			t.Fatal("usecase should not be called")
+			return 0, nil
+		})
+		defer srv.Close()
+
+		invalid := 12.345
+		body := importAdsBody{Ads: []createAdBody{
+			{Title: "scooter", Price: &invalid, PhotoURL: "https://example.com/scooter.jpg"},
+		}}
+		resp := postJSON(t, srv.URL+"/ads/import", body, "user-1")
+		defer func() { _ = resp.Body.Close() }()
+
+		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+	})
+
 	t.Run("returns 500 and stops on first usecase error", func(t *testing.T) {
 		call := 0
 		srv := newImportAdsServer(func(_ context.Context, _ usecase.CreateAdRequest) (domain.AdID, error) {

@@ -11,9 +11,19 @@ import (
 )
 
 type createAdBody struct {
-	Title      string `json:"title"`
-	PriceCents int64  `json:"price_cents"`
-	PhotoURL   string `json:"photo_url"`
+	Title      string   `json:"title"`
+	Price      *float64 `json:"price,omitempty"`
+	PriceCents int64    `json:"price_cents,omitempty"` // Deprecated: kept until web and mobile clients send price.
+	PhotoURL   string   `json:"photo_url"`
+}
+
+// Price in euros preffered
+func (b createAdBody) priceInCents() (int64, error) {
+	if b.Price == nil {
+		return b.PriceCents, nil
+	}
+
+	return eurosToCents(*b.Price)
 }
 
 type createAdResponse struct {
@@ -29,11 +39,17 @@ func handlerCreateAd(createAd usecase.CreateAdFunc) http.HandlerFunc {
 			return
 		}
 
+		priceCents, err := body.priceInCents()
+		if err != nil {
+			httpresponse.WriteError(rw, http.StatusBadRequest, err.Error())
+			return
+		}
+
 		ownerID := middleware.UserIDFromRequest(r)
 
 		adID, err := createAd(r.Context(), usecase.CreateAdRequest{
 			Title:      body.Title,
-			PriceCents: body.PriceCents,
+			PriceCents: priceCents,
 			PhotoURL:   body.PhotoURL,
 			OwnerID:    ownerID,
 		})
