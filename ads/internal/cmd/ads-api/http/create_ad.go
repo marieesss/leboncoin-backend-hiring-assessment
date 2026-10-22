@@ -2,6 +2,7 @@ package http
 
 import (
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net/http"
 
@@ -13,17 +14,22 @@ import (
 type createAdBody struct {
 	Title      string   `json:"title"`
 	Price      *float64 `json:"price,omitempty"`
-	PriceCents int64    `json:"price_cents,omitempty"` // Deprecated: kept until web and mobile clients send price.
+	PriceCents *int64   `json:"price_cents,omitempty"` // Deprecated: kept until web and mobile clients send price.
 	PhotoURL   string   `json:"photo_url"`
 }
 
-// Price in euros preffered
+// Price body validator
 func (b createAdBody) priceInCents() (int64, error) {
-	if b.Price == nil {
-		return b.PriceCents, nil
+	switch {
+	case b.Price != nil && b.PriceCents != nil:
+		return 0, errors.New("send either price or price_cents, not both")
+	case b.Price != nil:
+		return eurosToCents(*b.Price)
+	case b.PriceCents != nil:
+		return *b.PriceCents, nil
+	default:
+		return 0, errors.New("price or price_cents is required")
 	}
-
-	return eurosToCents(*b.Price)
 }
 
 type createAdResponse struct {

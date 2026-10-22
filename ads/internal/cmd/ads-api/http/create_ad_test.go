@@ -42,7 +42,7 @@ func postJSON(t *testing.T, url string, body any, authHeader string) *http.Respo
 func TestHandlerCreateAd(t *testing.T) {
 	validBody := createAdBody{
 		Title:      "mountain bike",
-		PriceCents: 15000,
+		PriceCents: new(int64(15000)),
 		PhotoURL:   "https://example.com/bike.jpg",
 	}
 
@@ -98,7 +98,7 @@ func TestHandlerCreateAd(t *testing.T) {
 		assert.Equal(t, int64(15050), received.PriceCents)
 	})
 
-	t.Run("uses price when price and price_cents are both sent", func(t *testing.T) {
+	t.Run("accepts price_cents 0", func(t *testing.T) {
 		var received usecase.CreateAdRequest
 		srv := newCreateAdServer(func(_ context.Context, req usecase.CreateAdRequest) (domain.AdID, error) {
 			received = req
@@ -106,19 +106,20 @@ func TestHandlerCreateAd(t *testing.T) {
 		})
 		defer srv.Close()
 
-		price := 150.5
-		body := createAdBody{Title: "mountain bike", Price: &price, PriceCents: 99, PhotoURL: "https://example.com/bike.jpg"}
+		body := createAdBody{Title: "free chair", PriceCents: new(int64(0)), PhotoURL: "https://example.com/chair.jpg"}
 		resp := postJSON(t, srv.URL+"/ads", body, "user-1")
 		defer func() { _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusCreated, resp.StatusCode)
-		assert.Equal(t, int64(15050), received.PriceCents)
+		assert.Equal(t, int64(0), received.PriceCents)
 	})
 
 	t.Run("returns 400 when price is invalid", func(t *testing.T) {
 		for name, raw := range map[string]string{
-			"more than 2 decimals": `{"title":"bike","price":12.345,"photo_url":"https://example.com/bike.jpg"}`,
-			"negative":             `{"title":"bike","price":-1,"photo_url":"https://example.com/bike.jpg"}`,
+			"more than 2 decimals":            `{"title":"bike","price":12.345,"photo_url":"https://example.com/bike.jpg"}`,
+			"negative":                        `{"title":"bike","price":-1,"photo_url":"https://example.com/bike.jpg"}`,
+			"price and price_cents missing":   `{"title":"bike","photo_url":"https://example.com/bike.jpg"}`,
+			"price and price_cents both sent": `{"title":"bike","price":150,"price_cents":15000,"photo_url":"https://example.com/bike.jpg"}`,
 		} {
 			t.Run(name, func(t *testing.T) {
 				srv := newCreateAdServer(func(_ context.Context, _ usecase.CreateAdRequest) (domain.AdID, error) {

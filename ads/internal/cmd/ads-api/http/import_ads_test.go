@@ -34,9 +34,9 @@ func TestHandlerImportAds(t *testing.T) {
 		defer srv.Close()
 
 		body := importAdsBody{Ads: []createAdBody{
-			{Title: "bike", PriceCents: 5000, PhotoURL: "https://example.com/bike.jpg"},
-			{Title: "scooter", PriceCents: 8000, PhotoURL: "https://example.com/scooter.jpg"},
-			{Title: "car", PriceCents: 200000, PhotoURL: "https://example.com/car.jpg"},
+			{Title: "bike", PriceCents: new(int64(5000)), PhotoURL: "https://example.com/bike.jpg"},
+			{Title: "scooter", PriceCents: new(int64(8000)), PhotoURL: "https://example.com/scooter.jpg"},
+			{Title: "car", PriceCents: new(int64(200000)), PhotoURL: "https://example.com/car.jpg"},
 		}}
 		resp := postJSON(t, srv.URL+"/ads/import", body, "user-1")
 		defer func() { _ = resp.Body.Close() }()
@@ -57,8 +57,8 @@ func TestHandlerImportAds(t *testing.T) {
 		defer srv.Close()
 
 		body := importAdsBody{Ads: []createAdBody{
-			{Title: "bike", PriceCents: 5000, PhotoURL: "https://example.com/bike.jpg"},
-			{Title: "scooter", PriceCents: 8000, PhotoURL: "https://example.com/scooter.jpg"},
+			{Title: "bike", PriceCents: new(int64(5000)), PhotoURL: "https://example.com/bike.jpg"},
+			{Title: "scooter", PriceCents: new(int64(8000)), PhotoURL: "https://example.com/scooter.jpg"},
 		}}
 		resp := postJSON(t, srv.URL+"/ads/import", body, "user-42")
 		defer func() { _ = resp.Body.Close() }()
@@ -146,9 +146,9 @@ func TestHandlerImportAds(t *testing.T) {
 		defer srv.Close()
 
 		body := importAdsBody{Ads: []createAdBody{
-			{Title: "bike", PriceCents: 5000, PhotoURL: "https://example.com/bike.jpg"},
-			{Title: "scooter", PriceCents: 8000, PhotoURL: "https://example.com/scooter.jpg"},
-			{Title: "car", PriceCents: 200000, PhotoURL: "https://example.com/car.jpg"},
+			{Title: "bike", PriceCents: new(int64(5000)), PhotoURL: "https://example.com/bike.jpg"},
+			{Title: "scooter", PriceCents: new(int64(8000)), PhotoURL: "https://example.com/scooter.jpg"},
+			{Title: "car", PriceCents: new(int64(200000)), PhotoURL: "https://example.com/car.jpg"},
 		}}
 		resp := postJSON(t, srv.URL+"/ads/import", body, "user-1")
 		defer func() { _ = resp.Body.Close() }()
