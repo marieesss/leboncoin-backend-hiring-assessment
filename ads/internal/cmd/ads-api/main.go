@@ -54,10 +54,11 @@ func run() error {
 	}
 
 	router := http.NewRouter(http.Usecases{
-		CreateAd: usecase.NewCreateAdFunc(adDAO),
-		DeleteAd: usecase.NewDeleteAdFunc(adDAO),
-		GetAd:    usecase.NewGetAdByIDFunc(adDAO, userClient),
-		ListAds:  usecase.NewListAdsFunc(adDAO),
+		CreateAd:  usecase.NewCreateAdFunc(adDAO),
+		DeleteAd:  usecase.NewDeleteAdFunc(adDAO),
+		GetAd:     usecase.NewGetAdByIDFunc(adDAO, userClient),
+		ListAds:   usecase.NewListAdsFunc(adDAO),
+		ImportAds: usecase.NewImportAdsFunc(adDAO),
 	}, swaggerSpec)
 
 	return httpserver.Run(ctx, cfg.HTTPAddr, router)

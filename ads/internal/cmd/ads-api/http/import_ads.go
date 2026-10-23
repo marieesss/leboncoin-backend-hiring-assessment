@@ -20,7 +20,8 @@ type importAdsResponse struct {
 	IDs []int64 `json:"ids"`
 }
 
-func handlerImportAds(createAd usecase.CreateAdFunc) http.HandlerFunc {
+// Import ads handler serves POST /ads/import.
+func handlerImportAds(importAds usecase.ImportAdsFunc) http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
 		var body importAdsBody
 		if err := decodeBody(r, &body); err != nil {
@@ -29,7 +30,7 @@ func handlerImportAds(createAd usecase.CreateAdFunc) http.HandlerFunc {
 		}
 
 		ownerID := domain.UserID(middleware.UserIDFromRequest(r))
-		ids := make([]int64, 0, len(body.Ads))
+		ads := make([]usecase.ImportedAd, 0, len(body.Ads))
 
 		for i, item := range body.Ads {
 			priceCents, err := item.priceInCents()
@@ -38,19 +39,23 @@ func handlerImportAds(createAd usecase.CreateAdFunc) http.HandlerFunc {
 				return
 			}
 
-			adID, err := createAd(r.Context(), usecase.CreateAdRequest{
+			ads = append(ads, usecase.ImportedAd{
 				Title:      item.Title,
 				PriceCents: priceCents,
 				PhotoURL:   item.PhotoURL,
-				OwnerID:    ownerID,
 			})
-			if err != nil {
-				slog.Error("unable to import ad", "user_id", ownerID, "error", err)
-				httpresponse.WriteError(rw, http.StatusInternalServerError, "internal error")
-				return
-			}
+		}
 
-			ids = append(ids, int64(adID))
+		adIDs, err := importAds(r.Context(), usecase.ImportAdsRequest{OwnerID: ownerID, Ads: ads})
+		if err != nil {
+			slog.Error("unable to import ads", "user_id", ownerID, "ads_count", len(ads), "error", err)
+			httpresponse.WriteError(rw, http.StatusInternalServerError, "internal error")
+			return
+		}
+
+		ids := make([]int64, 0, len(adIDs))
+		for _, id := range adIDs {
+			ids = append(ids, int64(id))
 		}
 
 		rw.Header().Set("Content-Type", "application/json")
