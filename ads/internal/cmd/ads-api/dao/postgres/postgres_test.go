@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"database/sql/driver"
 	"errors"
 	"testing"
 	"time"
@@ -334,5 +335,179 @@ func TestTransaction(t *testing.T) {
 
 		require.Error(t, dao.Commit())
 		require.Error(t, dao.Rollback())
+	})
+}
+
+// arrayConverter lets sqlmock accept the []int64 the DAO sends as a BIGINT[], which pgx encodes natively.
+type arrayConverter struct{}
+
+func (arrayConverter) ConvertValue(v any) (driver.Value, error) {
+	if ids, ok := v.([]int64); ok {
+		return ids, nil
+	}
+
+	return driver.DefaultParameterConverter.ConvertValue(v)
+}
+
+func newMockDAOWithArrays(t *testing.T) (*DAO, sqlmock.Sqlmock) {
+	t.Helper()
+	db, mock, err := sqlmock.New(sqlmock.ValueConverterOption(arrayConverter{}))
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = db.Close() })
+	return &DAO{db: db}, mock
+}
+
+func TestClaimImport(t *testing.T) {
+	ctx := context.Background()
+	key := adsdao.ImportKey{OwnerID: "user-1", IdempotencyKey: "key-1"}
+
+	t.Run("returns true when the key is new", func(t *testing.T) {
+		dao, mock := newMockDAO(t)
+		mock.ExpectExec("INSERT INTO ad_imports").
+			WithArgs("user-1", "key-1", "hash-1").
+			WillReturnResult(sqlmock.NewResult(0, 1))
+
+		claimed, err := dao.ClaimImport(ctx, key, "hash-1")
+
+		require.NoError(t, err)
+		assert.True(t, claimed)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("returns false when the key is already recorded", func(t *testing.T) {
+		dao, mock := newMockDAO(t)
+		mock.ExpectExec("INSERT INTO ad_imports").
+			WithArgs("user-1", "key-1", "hash-1").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+
+		claimed, err := dao.ClaimImport(ctx, key, "hash-1")
+
+		require.NoError(t, err)
+		assert.False(t, claimed)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("returns error on query failure", func(t *testing.T) {
+		dao, mock := newMockDAO(t)
+		boom := errors.New("connection reset")
+		mock.ExpectExec("INSERT INTO ad_imports").
+			WithArgs("user-1", "key-1", "hash-1").
+			WillReturnError(boom)
+
+		_, err := dao.ClaimImport(ctx, key, "hash-1")
+
+		assert.ErrorIs(t, err, boom)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("returns error when affected rows cannot be read", func(t *testing.T) {
+		dao, mock := newMockDAO(t)
+		boom := errors.New("driver error")
+		mock.ExpectExec("INSERT INTO ad_imports").
+			WithArgs("user-1", "key-1", "hash-1").
+			WillReturnResult(sqlmock.NewErrorResult(boom))
+
+		_, err := dao.ClaimImport(ctx, key, "hash-1")
+
+		assert.ErrorIs(t, err, boom)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+}
+
+func TestGetImport(t *testing.T) {
+	ctx := context.Background()
+	key := adsdao.ImportKey{OwnerID: "user-1", IdempotencyKey: "key-1"}
+
+	t.Run("returns the recorded import", func(t *testing.T) {
+		dao, mock := newMockDAO(t)
+		mock.ExpectQuery("SELECT request_hash, ad_ids").
+			WithArgs("user-1", "key-1").
+			WillReturnRows(sqlmock.NewRows([]string{"request_hash", "ad_ids"}).AddRow("hash-1", "{10,11}"))
+
+		got, err := dao.GetImport(ctx, key)
+
+		require.NoError(t, err)
+		assert.Equal(t, adsdao.Import{RequestHash: "hash-1", AdIDs: []domain.AdID{10, 11}}, got)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("returns ErrNotFound when no row", func(t *testing.T) {
+		dao, mock := newMockDAO(t)
+		mock.ExpectQuery("SELECT request_hash, ad_ids").
+			WithArgs("user-1", "key-1").
+			WillReturnRows(sqlmock.NewRows([]string{"request_hash", "ad_ids"}))
+
+		_, err := dao.GetImport(ctx, key)
+
+		assert.ErrorIs(t, err, adsdao.ErrNotFound)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("returns error on query failure", func(t *testing.T) {
+		dao, mock := newMockDAO(t)
+		boom := errors.New("connection reset")
+		mock.ExpectQuery("SELECT request_hash, ad_ids").
+			WithArgs("user-1", "key-1").
+			WillReturnError(boom)
+
+		_, err := dao.GetImport(ctx, key)
+
+		assert.ErrorIs(t, err, boom)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+}
+
+func TestCompleteImport(t *testing.T) {
+	ctx := context.Background()
+	key := adsdao.ImportKey{OwnerID: "user-1", IdempotencyKey: "key-1"}
+
+	t.Run("stores the ad ids", func(t *testing.T) {
+		dao, mock := newMockDAOWithArrays(t)
+		mock.ExpectExec("UPDATE ad_imports").
+			WithArgs("user-1", "key-1", []int64{10, 11}).
+			WillReturnResult(sqlmock.NewResult(0, 1))
+
+		err := dao.CompleteImport(ctx, key, []domain.AdID{10, 11})
+
+		require.NoError(t, err)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("returns ErrNotFound when the import is not claimed", func(t *testing.T) {
+		dao, mock := newMockDAOWithArrays(t)
+		mock.ExpectExec("UPDATE ad_imports").
+			WithArgs("user-1", "key-1", []int64{10}).
+			WillReturnResult(sqlmock.NewResult(0, 0))
+
+		err := dao.CompleteImport(ctx, key, []domain.AdID{10})
+
+		assert.ErrorIs(t, err, adsdao.ErrNotFound)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("returns error on query failure", func(t *testing.T) {
+		dao, mock := newMockDAOWithArrays(t)
+		boom := errors.New("connection reset")
+		mock.ExpectExec("UPDATE ad_imports").
+			WithArgs("user-1", "key-1", []int64{10}).
+			WillReturnError(boom)
+
+		err := dao.CompleteImport(ctx, key, []domain.AdID{10})
+
+		assert.ErrorIs(t, err, boom)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("returns error when affected rows cannot be read", func(t *testing.T) {
+		dao, mock := newMockDAOWithArrays(t)
+		boom := errors.New("driver error")
+		mock.ExpectExec("UPDATE ad_imports").
+			WithArgs("user-1", "key-1", []int64{10}).
+			WillReturnResult(sqlmock.NewErrorResult(boom))
+
+		err := dao.CompleteImport(ctx, key, []domain.AdID{10})
+
+		assert.ErrorIs(t, err, boom)
+		require.NoError(t, mock.ExpectationsWereMet())
 	})
 }
