@@ -7,6 +7,7 @@ Once you are satisfied with your work, please send us your repository url.
 
 Please refer to [these instructions](INSTRUCTIONS.md).
 
+Technical test summary [ here](hiring-assessment-summary.md)
 # Ads API
 
 A small Go HTTP API around a single domain: *ads* (classified ads).
