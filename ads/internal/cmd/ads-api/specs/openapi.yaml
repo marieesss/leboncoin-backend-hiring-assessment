@@ -33,13 +33,31 @@ paths:
           example: bike
         - name: user_id
           in: query
-          description: Filter ads belonging to this owner.
+          description: Filter ads belonging to this owner. Must be a valid UUID.
           schema:
             type: string
+            format: uuid
           example: "00000000-0000-0000-0000-000000000001"
+        - name: min_price
+          in: query
+          description: Inclusive lower bound on the price, in euros with at most 2 decimals. 0 means no lower bound. Cannot be combined with min_price_cents or max_price_cents.
+          schema:
+            type: number
+            format: double
+            minimum: 0
+          example: 50
+        - name: max_price
+          in: query
+          description: Inclusive upper bound on the price, in euros with at most 2 decimals. 
+          schema:
+            type: number
+            format: double
+            minimum: 0
+          example: 500
         - name: min_price_cents
           in: query
-          description: Inclusive lower bound on the price (in cents). 0 means no lower bound.
+          deprecated: true
+          description: Inclusive lower bound on the price (in cents). 0 means no lower bound. Deprecated, use min_price instead
           schema:
             type: integer
             format: int64
@@ -47,7 +65,8 @@ paths:
           example: 5000
         - name: max_price_cents
           in: query
-          description: Inclusive upper bound on the price (in cents). 0 means no upper bound.
+          deprecated: true
+          description: Inclusive upper bound on the price (in cents). 0 means no upper bound. 0 means no upper bound.Deprecated, use max_price instead. Cannot be combined with min_price or max_price.
           schema:
             type: integer
             format: int64
@@ -61,7 +80,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ListAdsResponse"
         "400":
-          description: Invalid query parameter (e.g. non-numeric price).
+          description: Invalid query parameter (e.g. non-numeric price or user_id not a UUID), or price filters in euros and in cents both sent.
 
     post:
       summary: Create an ad
@@ -83,7 +102,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/CreateAdResponse"
         "400":
-          description: Malformed or unknown request body field.
+          description: Malformed or unknown request body field, invalid price, or both price and price_cents sent.
         "401":
           description: Missing Authorization header.
         "500":
@@ -156,7 +175,7 @@ components:
   schemas:
     Ad:
       type: object
-      required: [id, title, price_cents, photo_url, user_id, created_at]
+      required: [id, title, price, price_cents, photo_url, user_id, created_at]
       properties:
         id:
           type: integer
@@ -165,11 +184,17 @@ components:
         title:
           type: string
           example: mountain bike
+        price:
+          type: number
+          format: double
+          description: Price in euros, with at most 2 decimals.
+          example: 150.5
         price_cents:
           type: integer
           format: int64
-          description: Price in euro cents.
-          example: 15000
+          deprecated: true
+          description: Price in euro cents. Deprecated, read price instead.
+          example: 15050
         photo_url:
           type: string
           example: https://example.com/bike.jpg
@@ -203,16 +228,25 @@ components:
 
     CreateAdBody:
       type: object
-      required: [title, price_cents, photo_url]
+      description: Exactly one of price and price_cents must be sent.
+      required: [title, photo_url]
       properties:
         title:
           type: string
           example: mountain bike
+        price:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 9999999999.99
+          description: Price in euros, with at most 2 decimals.
+          example: 150.5
         price_cents:
           type: integer
           format: int64
-          description: Price in euro cents.
-          example: 15000
+          deprecated: true
+          description: Price in euro cents. Deprecated, send price 
+          example: 15050
         photo_url:
           type: string
           example: https://example.com/bike.jpg
