@@ -46,6 +46,16 @@ func TestGetAdByID(t *testing.T) {
 		assert.Equal(t, usecase.AdDetails{Ad: ad}, got)
 	})
 
+	t.Run("empty username when the API runs without user service", func(t *testing.T) {
+		m := mockdao.New(t)
+		m.On("GetAdByID", ctx, domain.AdID(42)).Return(ad, nil)
+
+		got, err := usecase.NewGetAdByIDFunc(m, nil)(ctx, 42)
+
+		require.NoError(t, err)
+		assert.Equal(t, usecase.AdDetails{Ad: ad}, got)
+	})
+
 	t.Run("error no ad found", func(t *testing.T) {
 		m := mockdao.New(t)
 		m.On("GetAdByID", ctx, domain.AdID(99)).Return(domain.Ad{}, adsdao.ErrNotFound)
