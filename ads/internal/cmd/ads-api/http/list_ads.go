@@ -17,7 +17,8 @@ import (
 type listAdsItem struct {
 	ID         int64     `json:"id"`
 	Title      string    `json:"title"`
-	PriceCents int64     `json:"price_cents"`
+	Price      float64   `json:"price"`
+	PriceCents int64     `json:"price_cents"` // Deprecated see issue #6
 	PhotoURL   string    `json:"photo_url"`
 	UserID     string    `json:"user_id"`
 	CreatedAt  time.Time `json:"created_at"`
@@ -31,6 +32,7 @@ func adToListAdsItem(a domain.Ad) listAdsItem {
 	return listAdsItem{
 		ID:         int64(a.ID),
 		Title:      a.Title,
+		Price:      centsToEuros(a.Price),
 		PriceCents: a.Price,
 		PhotoURL:   a.PhotoURL,
 		UserID:     a.UserID.String(),

@@ -51,6 +51,7 @@ func TestHandlerGetAd(t *testing.T) {
 		require.NoError(t, json.NewDecoder(resp.Body).Decode(&got))
 		assert.Equal(t, int64(42), got.ID)
 		assert.Equal(t, "mountain bike", got.Title)
+		assert.InDelta(t, 150.0, got.Price, 0)
 		assert.Equal(t, int64(15000), got.PriceCents)
 		assert.Equal(t, "https://example.com/bike.jpg", got.PhotoURL)
 		assert.Equal(t, "user-1", got.UserID)
