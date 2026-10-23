@@ -38,6 +38,7 @@ Not done.
 - Running without the user service: when IDENTITY_URL is empty, GET /ads/{id} returns the ad without username instead of crashing.
 - OpenAPI and README up to date for every endpoint, including POST /ads/import, which was not documented
 
+
 ## Nice to have
 
 - Validate the length of the Idempotency-Key sent to POST /ads/import, so an oversized key returns 400 instead of 500
