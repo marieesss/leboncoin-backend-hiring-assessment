@@ -75,15 +75,29 @@ func TestHandlerListAds(t *testing.T) {
 		})
 		defer srv.Close()
 
-		resp, err := http.Get(srv.URL + "/ads?title=bike&user_id=user-3&min_price_cents=1000&max_price_cents=50000")
+		resp, err := http.Get(srv.URL + "/ads?title=bike&user_id=00000000-0000-0000-0000-000000000003&min_price_cents=1000&max_price_cents=50000")
 		require.NoError(t, err)
 		defer func() { _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 		assert.Equal(t, "bike", received.Title)
-		assert.Equal(t, domain.UserID("user-3"), received.OwnerID)
+		assert.Equal(t, domain.UserID("00000000-0000-0000-0000-000000000003"), received.OwnerID)
 		assert.Equal(t, int64(1000), received.MinPriceCents)
 		assert.Equal(t, int64(50000), received.MaxPriceCents)
+	})
+
+	t.Run("returns 400 when user_id is not a valid UUID", func(t *testing.T) {
+		srv := newListAdsServer(func(_ context.Context, _ usecase.ListAdsRequest) ([]domain.Ad, error) {
+			t.Fatal("usecase should not be called")
+			return nil, nil
+		})
+		defer srv.Close()
+
+		resp, err := http.Get(srv.URL + "/ads?user_id=user-3")
+		require.NoError(t, err)
+		defer func() { _ = resp.Body.Close() }()
+
+		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 	})
 
 	t.Run("returns 400 when min_price_cents is not a number", func(t *testing.T) {

@@ -2,11 +2,13 @@ package http
 
 import (
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"strconv"
 	"time"
 
+	"github.com/google/uuid"
 	"github.mpi-internal.com/leboncoin/backend-hiring-assessment/ads/internal/cmd/ads-api/domain"
 	"github.mpi-internal.com/leboncoin/backend-hiring-assessment/ads/internal/cmd/ads-api/usecase"
 	"github.mpi-internal.com/leboncoin/backend-hiring-assessment/common/httpresponse"
@@ -45,8 +47,12 @@ func handlerListAds(listAds usecase.ListAdsFunc) http.HandlerFunc {
 		}
 
 		if raw := q.Get("user_id"); raw != "" {
-			ownerID := domain.UserID(raw)
-			req.OwnerID = ownerID
+			if err := uuid.Validate(raw); err != nil {
+				httpresponse.WriteError(rw, http.StatusBadRequest, fmt.Sprintf("user_id %q is not a valid UUID", raw))
+				return
+			}
+
+			req.OwnerID = domain.UserID(raw)
 		}
 
 		if raw := q.Get("min_price_cents"); raw != "" {
