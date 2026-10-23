@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgtype"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	adsdao "github.mpi-internal.com/leboncoin/backend-hiring-assessment/ads/internal/cmd/ads-api/dao"
 	"github.mpi-internal.com/leboncoin/backend-hiring-assessment/ads/internal/cmd/ads-api/domain"
@@ -194,6 +195,87 @@ func (d *DAO) DeleteAd(ctx context.Context, id domain.AdID) error {
 
 	if affected == 0 {
 		return fmt.Errorf("unable to delete ad: %w", adsdao.ErrNotFound)
+	}
+
+	return nil
+}
+
+// ReportImport records a bulk import with its idempotency key. It returns false when the key is already recorded.
+// Used on first request to claim the import, and on retries to check that the same content is being retried.
+func (d *DAO) ReportImport(ctx context.Context, key adsdao.ImportKey, requestHash string) (bool, error) {
+	const query = `
+		INSERT INTO ad_imports (user_id, idempotency_key, request_hash)
+		VALUES ($1::uuid, $2, $3)
+		ON CONFLICT (user_id, idempotency_key) DO NOTHING`
+
+	res, err := d.runner().ExecContext(ctx, query, string(key.OwnerID), key.IdempotencyKey, requestHash)
+	if err != nil {
+		return false, fmt.Errorf("unable to report import: %w", err)
+	}
+
+	affected, err := res.RowsAffected()
+	if err != nil {
+		return false, fmt.Errorf("unable to report import: %w", err)
+	}
+
+	return affected == 1, nil
+}
+
+// GetImport returns a recorded bulk import, or dao.ErrNotFound.
+func (d *DAO) GetImport(ctx context.Context, key adsdao.ImportKey) (adsdao.Import, error) {
+	const query = `
+		SELECT request_hash, ad_ids
+		FROM ad_imports
+		WHERE user_id = $1::uuid AND idempotency_key = $2`
+
+	var (
+		imp    adsdao.Import
+		rawIDs []int64
+	)
+
+	err := d.runner().QueryRowContext(ctx, query, string(key.OwnerID), key.IdempotencyKey).
+		Scan(&imp.RequestHash, pgtype.NewMap().SQLScanner(&rawIDs))
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return adsdao.Import{}, fmt.Errorf("unable to get import: %w", adsdao.ErrNotFound)
+		}
+
+		return adsdao.Import{}, fmt.Errorf("unable to get import: %w", err)
+	}
+
+	imp.AdIDs = make([]domain.AdID, 0, len(rawIDs))
+	for _, id := range rawIDs {
+		imp.AdIDs = append(imp.AdIDs, domain.AdID(id))
+	}
+
+	return imp, nil
+}
+
+// CompleteImport stores the ids of the ads created by a reported bulk import, or returns dao.ErrNotFound.
+// Used on the first request to store the ids after transaction commit, and on retries to check that the same ids are being returned.
+func (d *DAO) CompleteImport(ctx context.Context, key adsdao.ImportKey, adIDs []domain.AdID) error {
+	const query = `
+		UPDATE ad_imports
+		SET ad_ids = $3
+		WHERE user_id = $1::uuid AND idempotency_key = $2`
+
+	rawIDs := make([]int64, 0, len(adIDs))
+	for _, id := range adIDs {
+		rawIDs = append(rawIDs, int64(id))
+	}
+
+	res, err := d.runner().ExecContext(ctx, query, string(key.OwnerID), key.IdempotencyKey, rawIDs)
+	if err != nil {
+		return fmt.Errorf("unable to complete import: %w", err)
+	}
+
+	affected, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("unable to complete import: %w", err)
+	}
+
+	if affected == 0 {
+		return fmt.Errorf("unable to complete import: %w", adsdao.ErrNotFound)
 	}
 
 	return nil

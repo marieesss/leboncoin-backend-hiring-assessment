@@ -181,3 +181,76 @@ func TestMock_Rollback(t *testing.T) {
 		assert.ErrorIs(t, m.Rollback(), boom)
 	})
 }
+
+func TestMock_ReportImport(t *testing.T) {
+	key := adsdao.ImportKey{OwnerID: "user-1", IdempotencyKey: "key-1"}
+
+	t.Run("returns configured report result", func(t *testing.T) {
+		m := mock.New(t)
+
+		m.On("ReportImport", ctx, key, "hash-1").Return(true, nil)
+
+		reported, err := m.ReportImport(ctx, key, "hash-1")
+
+		require.NoError(t, err)
+		assert.True(t, reported)
+	})
+
+	t.Run("returns configured error", func(t *testing.T) {
+		m := mock.New(t)
+		boom := errors.New("db down")
+
+		m.On("ReportImport", ctx, key, "hash-1").Return(false, boom)
+
+		_, err := m.ReportImport(ctx, key, "hash-1")
+
+		assert.ErrorIs(t, err, boom)
+	})
+}
+
+func TestMock_GetImport(t *testing.T) {
+	key := adsdao.ImportKey{OwnerID: "user-1", IdempotencyKey: "key-1"}
+
+	t.Run("returns configured import", func(t *testing.T) {
+		m := mock.New(t)
+		want := adsdao.Import{RequestHash: "hash-1", AdIDs: []domain.AdID{10, 11}}
+
+		m.On("GetImport", ctx, key).Return(want, nil)
+
+		got, err := m.GetImport(ctx, key)
+
+		require.NoError(t, err)
+		assert.Equal(t, want, got)
+	})
+
+	t.Run("returns zero import on error", func(t *testing.T) {
+		m := mock.New(t)
+
+		m.On("GetImport", ctx, key).Return(nil, adsdao.ErrNotFound)
+
+		got, err := m.GetImport(ctx, key)
+
+		assert.ErrorIs(t, err, adsdao.ErrNotFound)
+		assert.Equal(t, adsdao.Import{}, got)
+	})
+}
+
+func TestMock_CompleteImport(t *testing.T) {
+	key := adsdao.ImportKey{OwnerID: "user-1", IdempotencyKey: "key-1"}
+
+	t.Run("returns nil on success", func(t *testing.T) {
+		m := mock.New(t)
+
+		m.On("CompleteImport", ctx, key, []domain.AdID{10, 11}).Return(nil)
+
+		require.NoError(t, m.CompleteImport(ctx, key, []domain.AdID{10, 11}))
+	})
+
+	t.Run("returns configured error", func(t *testing.T) {
+		m := mock.New(t)
+
+		m.On("CompleteImport", ctx, key, []domain.AdID{10}).Return(adsdao.ErrNotFound)
+
+		assert.ErrorIs(t, m.CompleteImport(ctx, key, []domain.AdID{10}), adsdao.ErrNotFound)
+	})
+}

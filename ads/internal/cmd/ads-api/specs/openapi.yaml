@@ -2,7 +2,7 @@ openapi: "3.0.3"
 
 info:
   title: Ads API
-  description: Classified ads — list, read, create, and delete ads.
+  description: Classified ads — list, read, create, import, and delete ads.
   version: "1.0.0"
 
 servers:
@@ -107,6 +107,43 @@ paths:
           description: Missing Authorization header.
         "500":
           description: Unexpected server error.
+
+  /ads/import:
+    post:
+      summary: Bulk import ads
+      operationId: importAds
+      tags: [ads]
+      security:
+        - userID: []
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: false
+          description: Unique key of the import, chosen by the client to avoid duplicate imports.
+          schema:
+            type: string
+          example: d2e201e8-7d32-4882-9473-9063e3a6396c
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ImportAdsBody"
+      responses:
+        "201":
+          description: Every ad created, or the ads created by the first call
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImportAdsResponse"
+        "400":
+          description: Malformed or unknown request body field, or an invalid ad (invalid price, both price and price_cents sent)
+        "401":
+          description: Missing Authorization header
+        "422":
+          description: The Idempotency-Key was already used with other ads
+        "500":
+          description: Unexpected server error
 
   /ads/{adID}:
     get:
@@ -250,6 +287,27 @@ components:
         photo_url:
           type: string
           example: https://example.com/bike.jpg
+
+    ImportAdsBody:
+      type: object
+      required: [ads]
+      properties:
+        ads:
+          type: array
+          items:
+            $ref: "#/components/schemas/CreateAdBody"
+
+    ImportAdsResponse:
+      type: object
+      required: [ids]
+      properties:
+        ids:
+          type: array
+          description: Identifiers of the created ads
+          items:
+            type: integer
+            format: int64
+          example: [101, 102]
 
     CreateAdResponse:
       type: object

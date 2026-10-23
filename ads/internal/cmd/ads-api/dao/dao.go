@@ -28,6 +28,12 @@ type DAO interface {
 // Tx is a Store scoped to an opened transaction.
 type Tx interface {
 	Store
+	// ReportImport records a bulk import with its idempotency key. It returns false when the key is already recorded. A concurrent report of the same key waits until the first transaction ends.
+	ReportImport(ctx context.Context, key ImportKey, requestHash string) (bool, error)
+	// GetImport returns a recorded bulk import, or ErrNotFound.
+	GetImport(ctx context.Context, key ImportKey) (Import, error)
+	// CompleteImport stores the ids of the ads created by a reported bulk import, or returns ErrNotFound.
+	CompleteImport(ctx context.Context, key ImportKey, adIDs []domain.AdID) error
 	// Commit applies every change made through the transaction.
 	Commit() error
 	// Rollback discards every change made through the transaction. Calling it on an already committed transaction does nothing, so `defer func() { _ = tx.Rollback() }()` is a safe guard.
@@ -40,6 +46,19 @@ type SearchAdsRequest struct {
 	MinPriceCents int64
 	MaxPriceCents int64
 	Title         string
+}
+
+// ImportKey identifies a bulk import by its owner and the idempotency key the owner sent.
+type ImportKey struct {
+	OwnerID        domain.UserID
+	IdempotencyKey string
+}
+
+// Import is a recorded bulk import.
+type Import struct {
+	// RequestHash identifies the content of the import, to detect a key reused with other ads.
+	RequestHash string
+	AdIDs       []domain.AdID
 }
 
 // CreateAdRequest carries the data needed to create an ad.

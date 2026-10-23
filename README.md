@@ -65,7 +65,26 @@ curl -s -X POST http://localhost:8080/ads \
 # Delete an ad (requires Authorization header, only the owner can delete it)
 curl -s -X DELETE http://localhost:8080/ads/3 \
   -H 'Authorization: 00000000-0000-0000-0000-000000000001'
+
+# Bulk import ads
+curl -s -X POST http://localhost:8080/ads/import \
+  -H 'Authorization: 00000000-0000-0000-0000-000000000001' \
+  -H 'Idempotency-Key: 3f2b8c1e-9d4a-4e7b-8f21-6a0c5d9e1b47' \
+  -H 'Content-Type: application/json' \
+  -d '{"ads":[{"title":"Mountain bike","price":120.5,"photo_url":"https://example.com/photos/bike.jpg"},{"title":"Road bike","price":300,"photo_url":"https://example.com/photos/road.jpg"}]}'
 ```
+
+## Bulk import
+
+`POST /ads/import` creates every ad of the body, or none of them
+
+To retry an import safely, send an `Idempotency-Key` header:
+
+- generate a new key (a UUID) for each import
+- send the same key again when retrying it after a timeout or a `500`: the ads created the first time are returned, with the same ids, not created twice
+- a key sent again with other ads is rejected with `422`
+
+The keys are stored in the `ad_imports` table (migration `004_create_ad_imports.sql`)
 
 ## API documentation (dev mode only)
 

@@ -57,6 +57,27 @@ func (m *Mock) DeleteAd(ctx context.Context, id domain.AdID) error {
 	return m.Called(ctx, id).Error(0)
 }
 
+// ReportImport returns the report result and the error set on the mock.
+func (m *Mock) ReportImport(ctx context.Context, key adsdao.ImportKey, requestHash string) (bool, error) {
+	args := m.Called(ctx, key, requestHash)
+
+	return args.Bool(0), args.Error(1)
+}
+
+// GetImport returns the import and the error set on the mock.
+func (m *Mock) GetImport(ctx context.Context, key adsdao.ImportKey) (adsdao.Import, error) {
+	args := m.Called(ctx, key)
+
+	imp, _ := args.Get(0).(adsdao.Import)
+
+	return imp, args.Error(1)
+}
+
+// CompleteImport returns the error set on the mock.
+func (m *Mock) CompleteImport(ctx context.Context, key adsdao.ImportKey, adIDs []domain.AdID) error {
+	return m.Called(ctx, key, adIDs).Error(0)
+}
+
 // Begin returns the mock itself as the transaction, so expectations stay set on a single object, and the error set on the mock.
 func (m *Mock) Begin(ctx context.Context) (adsdao.Tx, error) {
 	args := m.Called(ctx)
