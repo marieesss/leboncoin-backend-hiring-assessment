@@ -2,6 +2,7 @@ package http
 
 import (
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
 
@@ -30,10 +31,16 @@ func handlerImportAds(createAd usecase.CreateAdFunc) http.HandlerFunc {
 		ownerID := domain.UserID(middleware.UserIDFromRequest(r))
 		ids := make([]int64, 0, len(body.Ads))
 
-		for _, item := range body.Ads {
+		for i, item := range body.Ads {
+			priceCents, err := item.priceInCents()
+			if err != nil {
+				httpresponse.WriteError(rw, http.StatusBadRequest, fmt.Sprintf("ad %d: %s", i, err))
+				return
+			}
+
 			adID, err := createAd(r.Context(), usecase.CreateAdRequest{
 				Title:      item.Title,
-				PriceCents: item.PriceCents,
+				PriceCents: priceCents,
 				PhotoURL:   item.PhotoURL,
 				OwnerID:    ownerID,
 			})

@@ -112,7 +112,7 @@ func (d *DAO) SearchAds(ctx context.Context, req adsdao.SearchAdsRequest) ([]dom
 	const query = `
 		SELECT ` + adColumns + `
 		FROM ads
-		WHERE ($1 = '' OR user_id::text = $1)
+		WHERE ($1 = '' OR user_id = NULLIF($1, '')::uuid)
 		  AND ($2 = 0 OR price_cents >= $2)
 		  AND ($3 = 0 OR price_cents <= $3)
 		  AND ($4 = '' OR title ILIKE '%' || $4 || '%')`

@@ -43,7 +43,7 @@ There are 2 entities in this sample:
 | `POST`   | `/ads`        | yes  | Create an ad                                                                      |
 | `GET`    | `/ads/{id}`   | no   | Get a single ad                                                                   |
 | `DELETE` | `/ads/{id}`   | yes  | Delete an ad (owner only)                                                         |
-| `GET`    | `/ads`        | no   | List ads (filterable by `title`, `user_id`, `min_price_cents`, `max_price_cents`) |
+| `GET`    | `/ads`        | no   | List ads |
 | `POST`   | `/ads/import` | yes  | Bulk ad import                                                                    |
 
 ```bash
@@ -51,7 +51,7 @@ There are 2 entities in this sample:
 curl -s -v http://localhost:8080/health
 
 # List ads (with optional filters)
-curl -s 'http://localhost:8080/ads?title=bike&min_price_cents=1000'
+curl -s 'http://localhost:8080/ads?title=bike&min_price=10'
 
 # Get a single ad
 curl -s http://localhost:8080/ads/1
@@ -60,7 +60,7 @@ curl -s http://localhost:8080/ads/1
 curl -s -X POST http://localhost:8080/ads \
   -H 'Authorization: 00000000-0000-0000-0000-000000000001' \
   -H 'Content-Type: application/json' \
-  -d '{"title":"Mountain bike","price_cents":12000,"photo_url":"https://example.com/photos/bike.jpg"}'
+  -d '{"title":"Mountain bike","price":120.5,"photo_url":"https://example.com/photos/bike.jpg"}'
 
 # Delete an ad (requires Authorization header, only the owner can delete it)
 curl -s -X DELETE http://localhost:8080/ads/3 \
