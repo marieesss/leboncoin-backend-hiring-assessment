@@ -38,16 +38,6 @@ Not done.
 - Running without the user service: when IDENTITY_URL is empty, GET /ads/{id} returns the ad without username instead of crashing.
 - OpenAPI and README up to date for every endpoint, including POST /ads/import, which was not documented
 
-## What I added
-
-- GitHub Actions CI : build, tests and golangci-lint on every PR, with the local lint command documented in the README.
-- Swagger UI in development only: APP_ENV defaults to production, and the OpenAPI spec is embedded in the binary.
-- Error handling and logs: shared JSON error responses, slog.Error only on 500 with an identifier, and the original error is never returned to the client. Rules written in CONTRIBUTING.md.
-- Indexes on the GET /ads filters: the API is read-heavy, so the price, owner and title filters are indexed.
-- user_id validation in GET /ads: a malformed UUID returns 400 instead of an empty list.
-- Configuration: .env.example and environment variables in docker-compose.yml.
-- Running without the user service: when IDENTITY_URL is empty, GET /ads/{id} returns the ad without username instead of crashing.
-- OpenAPI and README up to date for every endpoint, including POST /ads/import, which was not documented
 
 ## Nice to have
 
