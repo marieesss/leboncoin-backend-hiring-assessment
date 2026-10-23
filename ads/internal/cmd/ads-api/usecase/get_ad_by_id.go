@@ -43,6 +43,11 @@ func (uc getAdByID) getAdByID(ctx context.Context, id domain.AdID) (AdDetails, e
 		return AdDetails{}, fmt.Errorf("unable to get ad %s: %w", id, err)
 	}
 
+	// The API can start without the user service, the ad is returned without username.
+	if uc.userClient == nil {
+		return AdDetails{Ad: found}, nil
+	}
+
 	// The username is secondary: the ad is still returned when the user service fails
 	user, err := uc.userClient.GetUserByID(ctx, found.UserID)
 	if err != nil {
