@@ -28,11 +28,11 @@ type DAO interface {
 // Tx is a Store scoped to an opened transaction.
 type Tx interface {
 	Store
-	// ClaimImport records a bulk import under its idempotency key. It returns false when the key is already recorded. A concurrent claim of the same key waits until the first transaction ends.
-	ClaimImport(ctx context.Context, key ImportKey, requestHash string) (bool, error)
+	// ReportImport records a bulk import with its idempotency key. It returns false when the key is already recorded. A concurrent report of the same key waits until the first transaction ends.
+	ReportImport(ctx context.Context, key ImportKey, requestHash string) (bool, error)
 	// GetImport returns a recorded bulk import, or ErrNotFound.
 	GetImport(ctx context.Context, key ImportKey) (Import, error)
-	// CompleteImport stores the ids of the ads created by a claimed bulk import, or returns ErrNotFound.
+	// CompleteImport stores the ids of the ads created by a reported bulk import, or returns ErrNotFound.
 	CompleteImport(ctx context.Context, key ImportKey, adIDs []domain.AdID) error
 	// Commit applies every change made through the transaction.
 	Commit() error

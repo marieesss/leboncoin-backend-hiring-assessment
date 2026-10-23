@@ -210,12 +210,12 @@ func (d *DAO) ReportImport(ctx context.Context, key adsdao.ImportKey, requestHas
 
 	res, err := d.runner().ExecContext(ctx, query, string(key.OwnerID), key.IdempotencyKey, requestHash)
 	if err != nil {
-		return false, fmt.Errorf("unable to claim import: %w", err)
+		return false, fmt.Errorf("unable to report import: %w", err)
 	}
 
 	affected, err := res.RowsAffected()
 	if err != nil {
-		return false, fmt.Errorf("unable to claim import: %w", err)
+		return false, fmt.Errorf("unable to report import: %w", err)
 	}
 
 	return affected == 1, nil
@@ -251,7 +251,7 @@ func (d *DAO) GetImport(ctx context.Context, key adsdao.ImportKey) (adsdao.Impor
 	return imp, nil
 }
 
-// CompleteImport stores the ids of the ads created by a claimed bulk import, or returns dao.ErrNotFound.
+// CompleteImport stores the ids of the ads created by a reported bulk import, or returns dao.ErrNotFound.
 // Used on the first request to store the ids after transaction commit, and on retries to check that the same ids are being returned.
 func (d *DAO) CompleteImport(ctx context.Context, key adsdao.ImportKey, adIDs []domain.AdID) error {
 	const query = `

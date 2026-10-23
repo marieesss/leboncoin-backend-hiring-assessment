@@ -1,9 +1,11 @@
 package http
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -29,6 +31,22 @@ func failImportAds(t *testing.T) usecase.ImportAdsFunc {
 		t.Fatal("usecase should not be called")
 		return nil, nil
 	}
+}
+
+func postImport(t *testing.T, url string, body any, idempotencyKey string) *http.Response {
+	t.Helper()
+	b, err := json.Marshal(body)
+	require.NoError(t, err)
+
+	req, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(b))
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "user-1")
+	req.Header.Set("Idempotency-Key", idempotencyKey)
+
+	resp, err := http.DefaultClient.Do(req)
+	require.NoError(t, err)
+	return resp
 }
 
 func TestHandlerImportAds(t *testing.T) {
@@ -128,6 +146,48 @@ func TestHandlerImportAds(t *testing.T) {
 		defer func() { _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+	})
+
+	t.Run("passes the trimmed Idempotency-Key to the usecase", func(t *testing.T) {
+		var received usecase.ImportAdsRequest
+		srv := newImportAdsServer(func(_ context.Context, req usecase.ImportAdsRequest) ([]domain.AdID, error) {
+			received = req
+			return []domain.AdID{1, 2}, nil
+		})
+		defer srv.Close()
+
+		resp := postImport(t, srv.URL+"/ads/import", validBody, "  key-1  ")
+		defer func() { _ = resp.Body.Close() }()
+
+		require.Equal(t, http.StatusCreated, resp.StatusCode)
+		assert.Equal(t, "key-1", received.IdempotencyKey)
+	})
+
+	t.Run("passes an empty key when the header is missing", func(t *testing.T) {
+		var received usecase.ImportAdsRequest
+		srv := newImportAdsServer(func(_ context.Context, req usecase.ImportAdsRequest) ([]domain.AdID, error) {
+			received = req
+			return []domain.AdID{1, 2}, nil
+		})
+		defer srv.Close()
+
+		resp := postJSON(t, srv.URL+"/ads/import", validBody, "user-1")
+		defer func() { _ = resp.Body.Close() }()
+
+		require.Equal(t, http.StatusCreated, resp.StatusCode)
+		assert.Empty(t, received.IdempotencyKey)
+	})
+
+	t.Run("returns 422 when the Idempotency-Key was used with other ads", func(t *testing.T) {
+		srv := newImportAdsServer(func(_ context.Context, _ usecase.ImportAdsRequest) ([]domain.AdID, error) {
+			return nil, fmt.Errorf("unable to replay import: %w", usecase.ErrIdempotencyKeyReused)
+		})
+		defer srv.Close()
+
+		resp := postImport(t, srv.URL+"/ads/import", validBody, "key-1")
+		defer func() { _ = resp.Body.Close() }()
+
+		assert.Equal(t, http.StatusUnprocessableEntity, resp.StatusCode)
 	})
 
 	t.Run("returns 500 when the usecase fails", func(t *testing.T) {

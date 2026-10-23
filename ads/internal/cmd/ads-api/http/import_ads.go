@@ -2,15 +2,20 @@ package http
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
+	"strings"
 
 	"github.mpi-internal.com/leboncoin/backend-hiring-assessment/ads/internal/cmd/ads-api/domain"
 	"github.mpi-internal.com/leboncoin/backend-hiring-assessment/ads/internal/cmd/ads-api/usecase"
 	"github.mpi-internal.com/leboncoin/backend-hiring-assessment/common/httpresponse"
 	"github.mpi-internal.com/leboncoin/backend-hiring-assessment/common/middleware"
 )
+
+// idempotencyKeyHeader carries the key a client sends again when it retries an import, so the ads are not created twice.
+const idempotencyKeyHeader = "Idempotency-Key"
 
 type importAdsBody struct {
 	Ads []createAdBody `json:"ads"`
@@ -23,6 +28,7 @@ type importAdsResponse struct {
 // Import ads handler serves POST /ads/import.
 func handlerImportAds(importAds usecase.ImportAdsFunc) http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
+		idempotencyKey := strings.TrimSpace(r.Header.Get(idempotencyKeyHeader))
 		var body importAdsBody
 		if err := decodeBody(r, &body); err != nil {
 			httpresponse.WriteError(rw, http.StatusBadRequest, err.Error())
@@ -46,9 +52,18 @@ func handlerImportAds(importAds usecase.ImportAdsFunc) http.HandlerFunc {
 			})
 		}
 
-		adIDs, err := importAds(r.Context(), usecase.ImportAdsRequest{OwnerID: ownerID, Ads: ads})
+		adIDs, err := importAds(r.Context(), usecase.ImportAdsRequest{
+			OwnerID:        ownerID,
+			IdempotencyKey: idempotencyKey,
+			Ads:            ads,
+		})
+		if errors.Is(err, usecase.ErrIdempotencyKeyReused) {
+			httpresponse.WriteError(rw, http.StatusUnprocessableEntity, fmt.Sprintf("%s already used with other ads", idempotencyKeyHeader))
+			return
+		}
+
 		if err != nil {
-			slog.Error("unable to import ads", "user_id", ownerID, "ads_count", len(ads), "error", err)
+			slog.Error("unable to import ads", "user_id", ownerID, "idempotency_key", idempotencyKey, "ads_count", len(ads), "error", err)
 			httpresponse.WriteError(rw, http.StatusInternalServerError, "internal error")
 			return
 		}

@@ -182,27 +182,27 @@ func TestMock_Rollback(t *testing.T) {
 	})
 }
 
-func TestMock_ClaimImport(t *testing.T) {
+func TestMock_ReportImport(t *testing.T) {
 	key := adsdao.ImportKey{OwnerID: "user-1", IdempotencyKey: "key-1"}
 
-	t.Run("returns configured claim result", func(t *testing.T) {
+	t.Run("returns configured report result", func(t *testing.T) {
 		m := mock.New(t)
 
-		m.On("ClaimImport", ctx, key, "hash-1").Return(true, nil)
+		m.On("ReportImport", ctx, key, "hash-1").Return(true, nil)
 
-		claimed, err := m.ClaimImport(ctx, key, "hash-1")
+		reported, err := m.ReportImport(ctx, key, "hash-1")
 
 		require.NoError(t, err)
-		assert.True(t, claimed)
+		assert.True(t, reported)
 	})
 
 	t.Run("returns configured error", func(t *testing.T) {
 		m := mock.New(t)
 		boom := errors.New("db down")
 
-		m.On("ClaimImport", ctx, key, "hash-1").Return(false, boom)
+		m.On("ReportImport", ctx, key, "hash-1").Return(false, boom)
 
-		_, err := m.ClaimImport(ctx, key, "hash-1")
+		_, err := m.ReportImport(ctx, key, "hash-1")
 
 		assert.ErrorIs(t, err, boom)
 	})

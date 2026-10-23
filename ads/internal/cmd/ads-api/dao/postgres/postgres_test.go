@@ -357,7 +357,7 @@ func newMockDAOWithArrays(t *testing.T) (*DAO, sqlmock.Sqlmock) {
 	return &DAO{db: db}, mock
 }
 
-func TestClaimImport(t *testing.T) {
+func TestReportImport(t *testing.T) {
 	ctx := context.Background()
 	key := adsdao.ImportKey{OwnerID: "user-1", IdempotencyKey: "key-1"}
 
@@ -367,10 +367,10 @@ func TestClaimImport(t *testing.T) {
 			WithArgs("user-1", "key-1", "hash-1").
 			WillReturnResult(sqlmock.NewResult(0, 1))
 
-		claimed, err := dao.ClaimImport(ctx, key, "hash-1")
+		reported, err := dao.ReportImport(ctx, key, "hash-1")
 
 		require.NoError(t, err)
-		assert.True(t, claimed)
+		assert.True(t, reported)
 		require.NoError(t, mock.ExpectationsWereMet())
 	})
 
@@ -380,10 +380,10 @@ func TestClaimImport(t *testing.T) {
 			WithArgs("user-1", "key-1", "hash-1").
 			WillReturnResult(sqlmock.NewResult(0, 0))
 
-		claimed, err := dao.ClaimImport(ctx, key, "hash-1")
+		reported, err := dao.ReportImport(ctx, key, "hash-1")
 
 		require.NoError(t, err)
-		assert.False(t, claimed)
+		assert.False(t, reported)
 		require.NoError(t, mock.ExpectationsWereMet())
 	})
 
@@ -394,7 +394,7 @@ func TestClaimImport(t *testing.T) {
 			WithArgs("user-1", "key-1", "hash-1").
 			WillReturnError(boom)
 
-		_, err := dao.ClaimImport(ctx, key, "hash-1")
+		_, err := dao.ReportImport(ctx, key, "hash-1")
 
 		assert.ErrorIs(t, err, boom)
 		require.NoError(t, mock.ExpectationsWereMet())
@@ -407,7 +407,7 @@ func TestClaimImport(t *testing.T) {
 			WithArgs("user-1", "key-1", "hash-1").
 			WillReturnResult(sqlmock.NewErrorResult(boom))
 
-		_, err := dao.ClaimImport(ctx, key, "hash-1")
+		_, err := dao.ReportImport(ctx, key, "hash-1")
 
 		assert.ErrorIs(t, err, boom)
 		require.NoError(t, mock.ExpectationsWereMet())
@@ -473,7 +473,7 @@ func TestCompleteImport(t *testing.T) {
 		require.NoError(t, mock.ExpectationsWereMet())
 	})
 
-	t.Run("returns ErrNotFound when the import is not claimed", func(t *testing.T) {
+	t.Run("returns ErrNotFound when the import is not reported", func(t *testing.T) {
 		dao, mock := newMockDAOWithArrays(t)
 		mock.ExpectExec("UPDATE ad_imports").
 			WithArgs("user-1", "key-1", []int64{10}).
